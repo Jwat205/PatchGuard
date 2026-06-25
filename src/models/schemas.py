@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class GitHubWebhookPayload(BaseModel):
@@ -56,6 +56,16 @@ class AgentFinding(BaseModel):
     suggested_fix: str | None = None
     is_blocking: bool = False
     remediation: str | None = None
+
+    @field_validator("line_number", mode="before")
+    @classmethod
+    def _coerce_line_number(cls, v: object) -> int | None:
+        if v is None:
+            return None
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            return None
 
 
 class QualityAgentResponse(BaseModel):
