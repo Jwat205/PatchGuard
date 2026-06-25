@@ -2,12 +2,12 @@ import json
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request, status
 
-from src.db.database import get_db
+from src.consumers.handlers import handle_pr_event
 from src.models.schemas import GitHubWebhookPayload, WebhookResponse
 from src.services.kafka_producer import publish_pr_event
+from src.services.monitoring import webhook_counter
 from src.utils.logging import get_logger
 from src.utils.validators import validate_github_signature
 
@@ -18,9 +18,9 @@ router = APIRouter(prefix="/github", tags=["webhooks"])
 @router.post("/webhook", response_model=WebhookResponse)
 async def receive_webhook(
     request: Request,
+    background_tasks: BackgroundTasks,
     x_hub_signature_256: str | None = Header(default=None),
     x_github_event: str | None = Header(default=None),
-    db: AsyncSession = Depends(get_db),
 ) -> WebhookResponse:
     raw_body = await request.body()
 
@@ -52,7 +52,13 @@ async def receive_webhook(
         "timestamp": datetime.utcnow().isoformat(),
     }
 
-    await publish_pr_event(event)
-    logger.info("PR event queued", extra={"event_id": event_id, "pr": payload.pr_number})
+    webhook_counter.inc()
+
+    try:
+        await publish_pr_event(event)
+        logger.info("PR event published to Kafka", extra={"event_id": event_id})
+    except Exception:
+        logger.warning("Kafka unavailable — falling back to background task", extra={"event_id": event_id})
+        background_tasks.add_task(handle_pr_event, event)
 
     return WebhookResponse(success=True, message="Review queued", task_id=event_id)

@@ -37,6 +37,8 @@ class Settings(BaseSettings):
 
     # Kafka
     kafka_brokers: str = "localhost:9092"
+    kafka_username: str = ""
+    kafka_password: str = ""
     kafka_topic_pr_events: str = "pr-events"
     kafka_topic_review_results: str = "review-results"
     kafka_consumer_group: str = "patchguard-consumers"

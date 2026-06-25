@@ -15,13 +15,21 @@ _producer: KafkaProducer | None = None
 def _get_producer() -> KafkaProducer:
     global _producer
     if _producer is None:
-        _producer = KafkaProducer(
-            bootstrap_servers=settings.kafka_brokers.split(","),
-            value_serializer=lambda v: json.dumps(v).encode("utf-8"),
-            key_serializer=lambda k: k.encode("utf-8") if k else None,
-            retries=3,
-            acks="all",
-        )
+        kwargs: dict = {
+            "bootstrap_servers": settings.kafka_brokers.split(","),
+            "value_serializer": lambda v: json.dumps(v).encode("utf-8"),
+            "key_serializer": lambda k: k.encode("utf-8") if k else None,
+            "retries": 3,
+            "acks": "all",
+        }
+        if settings.kafka_username and settings.kafka_password:
+            kwargs.update({
+                "security_protocol": "SASL_SSL",
+                "sasl_mechanism": "SCRAM-SHA-256",
+                "sasl_plain_username": settings.kafka_username,
+                "sasl_plain_password": settings.kafka_password,
+            })
+        _producer = KafkaProducer(**kwargs)
     return _producer
 
 

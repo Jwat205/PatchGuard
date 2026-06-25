@@ -17,6 +17,4 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
-# Render free tier: run FastAPI + Celery worker in one container.
-# Uvicorn starts in background; celery runs in foreground (keeps container alive).
-CMD ["sh", "-c", "uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000} & celery -A src.consumers.celery_tasks worker --loglevel=info --concurrency=2 && wait"]
+CMD ["sh", "-c", "celery -A src.consumers.celery_tasks worker --loglevel=info --concurrency=2 & uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
