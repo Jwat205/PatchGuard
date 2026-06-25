@@ -48,10 +48,10 @@ class CeleryTaskRequest(BaseModel):
 
 
 class AgentFinding(BaseModel):
-    file_path: str
-    line_number: int
-    finding_type: str
-    severity: Literal["info", "warning", "critical"]
+    file_path: str | None = None
+    line_number: int | None = None
+    finding_type: str | None = None
+    severity: Literal["info", "warning", "critical"] = "info"
     message: str
     suggested_fix: str | None = None
     is_blocking: bool = False
