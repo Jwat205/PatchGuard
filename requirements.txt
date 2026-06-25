@@ -1,8 +1,8 @@
 # Web Framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-pydantic==2.5.0
-pydantic-settings==2.1.0
+pydantic>=2.11.0
+pydantic-settings>=2.7.0
 
 # Databases
 sqlalchemy==2.0.23
@@ -19,11 +19,10 @@ kafka-python==2.0.2
 celery[redis]==5.3.6
 
 # HTTP / Async
-aiohttp==3.9.1
+aiohttp>=3.11.0
 httpx==0.25.2
-greenlet==3.0.1
 
-# LLM Integration — OpenAI-compatible client works with Ollama (local) and Groq (free hosted)
+# LLM
 openai>=1.0.0
 
 # GitHub Integration
