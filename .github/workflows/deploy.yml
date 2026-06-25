@@ -1,20 +1,52 @@
 name: Deploy
+
 on:
   push:
     branches: [main]
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Login to registry
-        run: echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login ${{ secrets.REGISTRY }} -u ${{ secrets.REGISTRY_USER }} --password-stdin
-      - name: Build & push
-        run: |
-          docker build -t ${{ secrets.REGISTRY }}/patchguard:${{ github.sha }} -f docker/Dockerfile .
-          docker tag ${{ secrets.REGISTRY }}/patchguard:${{ github.sha }} ${{ secrets.REGISTRY }}/patchguard:latest
-          docker push ${{ secrets.REGISTRY }}/patchguard:${{ github.sha }}
-          docker push ${{ secrets.REGISTRY }}/patchguard:latest
-      # - name: Deploy to ECS
-      #   run: aws ecs update-service --cluster prod --service patchguard --force-new-deployment
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: "pip" }
+      - run: pip install -r requirements-dev.txt
+      - run: pytest tests/ -v --no-cov -q
+        env:
+          GITHUB_WEBHOOK_SECRET: test-secret
+          JWT_SECRET_KEY: test-jwt-secret
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ghcr.io/${{ github.repository_owner }}/patchguard:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/patchguard:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/patchguard:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy
+        run: curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"

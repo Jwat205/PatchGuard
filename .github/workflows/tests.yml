@@ -1,35 +1,19 @@
 name: Tests
+
 on: [push, pull_request]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: patchguard
-          POSTGRES_PASSWORD: patchguard
-          POSTGRES_DB: patchguard
-        ports: ["5432:5432"]
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-      mongodb:
-        image: mongo:7.0
-        ports: ["27017:27017"]
-      redis:
-        image: redis:7.0-alpine
-        ports: ["6379:6379"]
-        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11", cache: "pip" }
       - run: pip install -r requirements-dev.txt
-      - run: pytest tests/ -v --cov=src --cov-report=xml
+      # Tests use fakeredis + aiosqlite — no external services needed.
+      - run: pytest tests/ -v --cov=src --cov-report=xml -q
         env:
-          DATABASE_URL: postgresql://patchguard:patchguard@localhost:5432/patchguard
-          MONGODB_URL: mongodb://localhost:27017
-          REDIS_URL: redis://localhost:6379
+          GITHUB_WEBHOOK_SECRET: test-secret
+          JWT_SECRET_KEY: test-jwt-secret
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          GITHUB_WEBHOOK_SECRET: test-secret
