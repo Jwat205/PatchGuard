@@ -1,4 +1,5 @@
 import asyncio
+import ssl
 
 from celery import Celery
 
@@ -13,6 +14,8 @@ celery_app = Celery(
     backend=settings.redis_url,
 )
 
+_ssl_config = {"ssl_cert_reqs": ssl.CERT_NONE} if settings.redis_url.startswith("rediss://") else {}
+
 celery_app.conf.update(
     task_serializer="json",
     result_serializer="json",
@@ -22,6 +25,8 @@ celery_app.conf.update(
     task_soft_time_limit=120,
     task_time_limit=150,
     worker_prefetch_multiplier=1,
+    broker_use_ssl=_ssl_config or None,
+    redis_backend_use_ssl=_ssl_config or None,
 )
 
 

@@ -55,11 +55,16 @@ class Settings(BaseSettings):
     @field_validator("database_url", mode="before")
     @classmethod
     def _coerce_asyncpg_driver(cls, v: str) -> str:
-        """Coerce postgresql:// to postgresql+asyncpg:// for SQLAlchemy."""
         if isinstance(v, str):
             v = v.replace("postgres://", "postgresql://", 1)
             if v.startswith("postgresql://"):
                 v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
+            # Strip params asyncpg doesn't understand — SSL handled via connect_args
+            for param in ("sslmode", "channel_binding"):
+                import re
+                v = re.sub(rf"[?&]{param}=[^&]*", "", v)
+                v = re.sub(r"\?&", "?", v)
+                v = v.rstrip("?").rstrip("&")
         return v
 
     # OpenTelemetry
