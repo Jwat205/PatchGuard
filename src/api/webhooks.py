@@ -31,13 +31,18 @@ async def receive_webhook(
 
     try:
         payload_data = json.loads(raw_body)
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+
+    action = payload_data.get("action", "")
+    if action not in ("opened", "synchronize", "reopened"):
+        return WebhookResponse(success=True, message=f"Action '{action}' ignored")
+
+    try:
         payload = GitHubWebhookPayload(**payload_data)
     except Exception as exc:
         logger.warning("Webhook payload validation failed", extra={"error": str(exc)})
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
-
-    if payload.action not in ("opened", "synchronize", "reopened"):
-        return WebhookResponse(success=True, message=f"Action '{payload.action}' ignored")
 
     event_id = str(uuid.uuid4())
     event = {
