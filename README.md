@@ -4,15 +4,15 @@ Autonomous GitHub pull request review service. When a PR is opened or updated, P
 
 ## How it works
 
-GitHub sends a webhook to PatchGuard when a PR is opened or updated. The event is queued (Kafka when available, FastAPI BackgroundTasks as fallback), then the orchestrator runs the diff through the review pipeline and posts results back to GitHub.
+GitHub sends a webhook to PatchGuard when a PR is opened or updated. The event is queued via Celery (Redis broker on Upstash), then the orchestrator runs the diff through the review pipeline and posts results back to GitHub. If Celery is unavailable, the review runs as a FastAPI background task in-process.
 
 ```
-GitHub PR → webhook → queue → orchestrator → 3 AI agents → GitHub review comment
-                                           ↓
-                              PostgreSQL (structured results)
-                              MongoDB     (audit log)
-                              Redis       (diff cache)
-                              Prometheus  (/metrics)
+GitHub PR → webhook → Celery task (Redis) → orchestrator → 3 AI agents → GitHub review comment
+                            ↓ (fallback if Redis down)                  ↓
+                    FastAPI BackgroundTask               PostgreSQL (reviews + findings)
+                                                        MongoDB    (audit log)
+                                                        Redis      (diff cache)
+                                                        Prometheus (/metrics)
 ```
 
 **Three agents run on every PR:**
@@ -28,7 +28,7 @@ A regex + Shannon entropy secret scanner runs before the agents (no LLM needed) 
 | Layer | Technology |
 |---|---|
 | API | FastAPI (async) |
-| Queue | Kafka (Upstash) + Celery/Redis fallback |
+| Queue | Celery + Redis (Upstash) |
 | LLM | OpenAI-compatible — Ollama locally, Groq in production |
 | PostgreSQL | Neon (free tier) — stores reviews and findings |
 | Redis | Upstash (free tier) — caching + Celery broker |

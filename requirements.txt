@@ -15,7 +15,6 @@ redis==5.0.1
 alembic==1.12.1
 
 # Message Queue
-kafka-python==2.0.2
 celery[redis]==5.3.6
 
 # HTTP / Async

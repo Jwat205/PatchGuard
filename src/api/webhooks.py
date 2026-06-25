@@ -5,8 +5,8 @@ from datetime import datetime
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request, status
 
 from src.consumers.handlers import handle_pr_event
+from src.consumers.celery_tasks import review_pr_task
 from src.models.schemas import GitHubWebhookPayload, WebhookResponse
-from src.services.kafka_producer import publish_pr_event
 from src.services.monitoring import webhook_counter
 from src.utils.logging import get_logger
 from src.utils.validators import validate_github_signature
@@ -55,10 +55,15 @@ async def receive_webhook(
     webhook_counter.inc()
 
     try:
-        await publish_pr_event(event)
-        logger.info("PR event published to Kafka", extra={"event_id": event_id})
+        review_pr_task.delay(
+            repo_id=event["repo_full_name"],
+            pr_number=event["pr_number"],
+            head_sha=event["head_sha"],
+            diff="",
+        )
+        logger.info("PR event queued via Celery", extra={"event_id": event_id})
     except Exception:
-        logger.warning("Kafka unavailable — falling back to background task", extra={"event_id": event_id})
+        logger.warning("Celery unavailable — running in-process", extra={"event_id": event_id})
         background_tasks.add_task(handle_pr_event, event)
 
     return WebhookResponse(success=True, message="Review queued", task_id=event_id)

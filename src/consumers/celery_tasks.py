@@ -1,11 +1,8 @@
 import asyncio
-import time
 
 from celery import Celery
-from pydantic import ValidationError
 
 from src.config import settings
-from src.models.schemas import CeleryTaskRequest
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -22,7 +19,6 @@ celery_app.conf.update(
     accept_content=["json"],
     task_acks_late=True,
     task_track_started=True,
-    task_max_retries=3,
     task_soft_time_limit=120,
     task_time_limit=150,
     worker_prefetch_multiplier=1,
@@ -42,20 +38,23 @@ def review_pr_task(
     head_sha: str,
     diff: str,
 ) -> dict:
-    start = time.time()
-    logger.info("review_pr_task started", extra={"repo_id": repo_id, "pr_number": pr_number})
+    from src.consumers.handlers import handle_pr_event
+
+    event = {
+        "event_id": self.request.id or "",
+        "event_type": "synchronize",
+        "repo_full_name": repo_id,
+        "pr_number": pr_number,
+        "head_sha": head_sha,
+        "base_sha": "",
+        "pr_title": "",
+        "timestamp": "",
+    }
 
     try:
-        request = CeleryTaskRequest(repo_id=repo_id, pr_number=pr_number, diff=diff)
-    except ValidationError as exc:
-        logger.error("Input validation failed", extra={"error": str(exc)})
+        asyncio.run(handle_pr_event(event))
+    except Exception as exc:
+        logger.error("review_pr_task failed", extra={"error": str(exc)})
         raise self.retry(exc=exc)
 
-    latency_ms = int((time.time() - start) * 1000)
-    logger.info("review_pr_task completed", extra={"latency_ms": latency_ms})
-
-    return {
-        "status": "completed",
-        "findings_count": 0,
-        "latency_ms": latency_ms,
-    }
+    return {"status": "completed", "repo": repo_id, "pr": pr_number}
