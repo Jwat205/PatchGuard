@@ -47,7 +47,11 @@ Return this exact JSON structure:
   "summary": "One-sentence overall code quality summary"
 }}
 
-Limit findings to max 10. Be specific with line numbers. severity must be one of: info, warning, critical.
+Rules:
+- Limit findings to max 5
+- severity must be one of: info, warning, critical
+- message and suggested_fix must be plain English only — NO code snippets, NO quotes from the diff, NO string concatenation expressions
+- line_number must be a plain integer (e.g. 42), never null, "N/A", or 0
 """
 
     def parse_response(self, raw: str, context: dict[str, Any]) -> dict[str, Any]:
