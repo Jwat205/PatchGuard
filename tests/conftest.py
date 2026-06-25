@@ -87,6 +87,7 @@ def make_signature(webhook_secret):
     def _sign(body: bytes) -> str:
         sig = hmac.new(webhook_secret.encode(), body, hashlib.sha256).hexdigest()
         return f"sha256={sig}"
+
     return _sign
 
 

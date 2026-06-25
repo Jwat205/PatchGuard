@@ -2,6 +2,7 @@
 Integration: webhook POST → queue → agent review → DB result.
 Skipped when Kafka/Redis are not available (CI without infrastructure).
 """
+
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -29,7 +30,7 @@ async def test_full_review_pipeline(client: AsyncClient):
 
     with (
         patch("src.api.webhooks.validate_github_signature", return_value=True),
-        patch("src.api.webhooks.publish_pr_event", new_callable=AsyncMock),
+        patch("src.consumers.handlers.handle_pr_event", new_callable=AsyncMock),
     ):
         resp = await client.post(
             "/github/webhook",

@@ -37,6 +37,7 @@ class CacheService:
 
     async def get_cached_file(self, repo: str, file_path: str, commit_sha: str) -> dict | None:
         from src.utils.cache_keys import github_file_key
+
         key = github_file_key(repo, file_path, commit_sha)
         return await self.get(key)
 
@@ -44,6 +45,7 @@ class CacheService:
         self, repo: str, file_path: str, commit_sha: str, content: Any, ttl: int = 3600
     ) -> bool:
         from src.utils.cache_keys import github_file_key
+
         key = github_file_key(repo, file_path, commit_sha)
         return await self.set(key, content, ttl=ttl)
 

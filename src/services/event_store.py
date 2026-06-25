@@ -32,6 +32,7 @@ async def record_review_event(
     latency_ms: int,
 ) -> None:
     import uuid
+
     db = get_mongo_db()
     doc = ReviewEvent(
         event_id=str(uuid.uuid4()),
