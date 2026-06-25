@@ -65,7 +65,7 @@ LLM_MODEL=qwen2.5-coder:7b
 Start local services and run:
 
 ```bash
-docker compose up -d          # PostgreSQL, Redis, MongoDB, Kafka
+docker compose up -d          # PostgreSQL, Redis, MongoDB
 uvicorn src.main:app --reload
 ```
 
@@ -95,8 +95,7 @@ For Ollama: install from [ollama.com](https://ollama.com), then `ollama pull qwe
 | Service | Provider | What it stores |
 |---|---|---|
 | PostgreSQL | [Neon](https://neon.tech) | PR reviews, individual findings |
-| Redis | [Upstash](https://upstash.com) | Diff cache, Celery task queue |
-| Kafka | [Upstash Kafka](https://upstash.com/kafka) | PR event stream |
+| Redis | [Upstash](https://upstash.com) | Diff cache + Celery task queue |
 | Hosting | [Render](https://render.com) | Web service (Docker) |
 
 ## Deployment
@@ -111,10 +110,7 @@ Configure these env vars in the Render dashboard (Environment tab):
 
 ```
 DATABASE_URL          postgresql://... (Neon)
-REDIS_URL             rediss://...     (Upstash Redis)
-KAFKA_BROKERS         ...upstash.io:9092
-KAFKA_USERNAME        (Upstash Kafka)
-KAFKA_PASSWORD        (Upstash Kafka)
+REDIS_URL             rediss://...     (Upstash)
 MONGODB_URL           mongodb+srv://...
 GITHUB_TOKEN          ghp_...
 GITHUB_WEBHOOK_SECRET (same value as your GitHub App webhook secret)
@@ -181,7 +177,7 @@ SELECT severity, COUNT(*) FROM findings GROUP BY severity;
 src/
   api/          webhooks.py, reviews.py, health.py
   agents/       base_agent.py, quality_agent.py, security_agent.py, dependency_agent.py
-  consumers/    handlers.py, kafka_consumer.py, celery_tasks.py
+  consumers/    handlers.py, celery_tasks.py
   db/           database.py (PostgreSQL), redis_client.py, mongodb.py
   models/       postgres_models.py (ORM), schemas.py (Pydantic)
   services/     orchestrator.py, secret_scanner.py, cache_service.py,
