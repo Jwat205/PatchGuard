@@ -23,12 +23,14 @@ def _get_producer() -> KafkaProducer:
             "acks": "all",
         }
         if settings.kafka_username and settings.kafka_password:
-            kwargs.update({
-                "security_protocol": "SASL_SSL",
-                "sasl_mechanism": "SCRAM-SHA-256",
-                "sasl_plain_username": settings.kafka_username,
-                "sasl_plain_password": settings.kafka_password,
-            })
+            kwargs.update(
+                {
+                    "security_protocol": "SASL_SSL",
+                    "sasl_mechanism": "SCRAM-SHA-256",
+                    "sasl_plain_username": settings.kafka_username,
+                    "sasl_plain_password": settings.kafka_password,
+                }
+            )
         _producer = KafkaProducer(**kwargs)
     return _producer
 
@@ -38,9 +40,11 @@ async def publish_pr_event(event: dict[str, Any]) -> None:
     try:
         producer = _get_producer()
         key = f"{event.get('repo_full_name')}:{event.get('pr_number')}"
-        future = producer.send(settings.kafka_topic_pr_events, key=key, value=event)
+        producer.send(settings.kafka_topic_pr_events, key=key, value=event)
         producer.flush(timeout=5)
-        logger.info("Event published to Kafka", extra={"topic": settings.kafka_topic_pr_events, "key": key})
+        logger.info(
+            "Event published to Kafka", extra={"topic": settings.kafka_topic_pr_events, "key": key}
+        )
     except KafkaError as exc:
         logger.error("Failed to publish event to Kafka", extra={"error": str(exc)})
         raise

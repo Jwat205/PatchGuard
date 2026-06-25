@@ -32,9 +32,15 @@ async def test_orchestrator_runs_all_agents():
 
     with (
         patch.object(orch._github, "get_pr_diff", new_callable=AsyncMock, return_value="diff text"),
-        patch.object(orch._quality, "run", new_callable=AsyncMock, return_value=_make_result("quality")),
-        patch.object(orch._security, "run", new_callable=AsyncMock, return_value=_make_result("security")),
-        patch.object(orch._dependency, "run", new_callable=AsyncMock, return_value=_make_result("dependency")),
+        patch.object(
+            orch._quality, "run", new_callable=AsyncMock, return_value=_make_result("quality")
+        ),
+        patch.object(
+            orch._security, "run", new_callable=AsyncMock, return_value=_make_result("security")
+        ),
+        patch.object(
+            orch._dependency, "run", new_callable=AsyncMock, return_value=_make_result("dependency")
+        ),
         patch.object(orch._github, "post_review", new_callable=AsyncMock, return_value={}),
         patch("src.services.orchestrator.record_review_event", new_callable=AsyncMock),
     ):
@@ -64,9 +70,21 @@ async def test_orchestrator_counts_findings():
 
     with (
         patch.object(orch._github, "get_pr_diff", new_callable=AsyncMock, return_value=""),
-        patch.object(orch._quality, "run", new_callable=AsyncMock, return_value=_make_result("quality", [finding])),
-        patch.object(orch._security, "run", new_callable=AsyncMock, return_value=_make_result("security", [finding, finding])),
-        patch.object(orch._dependency, "run", new_callable=AsyncMock, return_value=_make_result("dependency")),
+        patch.object(
+            orch._quality,
+            "run",
+            new_callable=AsyncMock,
+            return_value=_make_result("quality", [finding]),
+        ),
+        patch.object(
+            orch._security,
+            "run",
+            new_callable=AsyncMock,
+            return_value=_make_result("security", [finding, finding]),
+        ),
+        patch.object(
+            orch._dependency, "run", new_callable=AsyncMock, return_value=_make_result("dependency")
+        ),
         patch.object(orch._github, "post_review", new_callable=AsyncMock, return_value={}),
         patch("src.services.orchestrator.record_review_event", new_callable=AsyncMock),
     ):

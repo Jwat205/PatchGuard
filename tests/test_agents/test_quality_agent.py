@@ -15,20 +15,22 @@ def _make_openai_response(content: str):
     return completion
 
 
-VALID_RESPONSE = json.dumps({
-    "findings": [
-        {
-            "file_path": "app.py",
-            "line_number": 15,
-            "finding_type": "missing_test",
-            "severity": "warning",
-            "message": "New function has no tests",
-            "suggested_fix": "Add pytest test",
-            "is_blocking": False,
-        }
-    ],
-    "summary": "One quality issue found",
-})
+VALID_RESPONSE = json.dumps(
+    {
+        "findings": [
+            {
+                "file_path": "app.py",
+                "line_number": 15,
+                "finding_type": "missing_test",
+                "severity": "warning",
+                "message": "New function has no tests",
+                "suggested_fix": "Add pytest test",
+                "is_blocking": False,
+            }
+        ],
+        "summary": "One quality issue found",
+    }
+)
 
 INVALID_RESPONSE = "This is not JSON at all"
 
@@ -38,7 +40,9 @@ async def test_quality_agent_valid_response():
     agent = QualityAgent()
     mock = AsyncMock(return_value=_make_openai_response(VALID_RESPONSE))
     with patch.object(agent._client.chat.completions, "create", mock):
-        result = await agent.run({"diff": "def foo(): pass", "file_context": "", "pr_title": "Test"})
+        result = await agent.run(
+            {"diff": "def foo(): pass", "file_context": "", "pr_title": "Test"}
+        )
 
     assert isinstance(result, AgentResult)
     assert result.validation_passed is True

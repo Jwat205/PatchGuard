@@ -12,7 +12,7 @@ async def test_valid_webhook_accepted(client: AsyncClient, valid_pr_payload, mak
 
     with (
         patch("src.api.webhooks.validate_github_signature", return_value=True),
-        patch("src.api.webhooks.publish_pr_event", new_callable=AsyncMock),
+        patch("src.consumers.handlers.handle_pr_event", new_callable=AsyncMock),
     ):
         response = await client.post(
             "/github/webhook",

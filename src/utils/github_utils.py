@@ -1,4 +1,4 @@
-from github import Github, GithubException
+from github import Github
 
 from src.config import settings
 from src.utils.logging import get_logger

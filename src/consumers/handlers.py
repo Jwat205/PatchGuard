@@ -46,17 +46,19 @@ async def handle_pr_event(event: dict[str, Any]) -> None:
             review.updated_at = datetime.utcnow()
 
             for f in result.get("all_findings", []):
-                db.add(Finding(
-                    review_id=review_id,
-                    agent_type=f.get("agent_type", ""),
-                    file_path=f.get("file_path", ""),
-                    line_number=f.get("line_number"),
-                    finding_type=f.get("finding_type", ""),
-                    severity=f.get("severity", "info"),
-                    message=f.get("message", ""),
-                    suggested_fix=f.get("suggested_fix"),
-                    is_blocking=f.get("is_blocking", False),
-                ))
+                db.add(
+                    Finding(
+                        review_id=review_id,
+                        agent_type=f.get("agent_type", ""),
+                        file_path=f.get("file_path", ""),
+                        line_number=f.get("line_number"),
+                        finding_type=f.get("finding_type", ""),
+                        severity=f.get("severity", "info"),
+                        message=f.get("message", ""),
+                        suggested_fix=f.get("suggested_fix"),
+                        is_blocking=f.get("is_blocking", False),
+                    )
+                )
 
             await db.commit()
 

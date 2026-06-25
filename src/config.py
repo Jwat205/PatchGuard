@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     kafka_consumer_group: str = "patchguard-consumers"
 
     # API
-    host: str = "0.0.0.0"
+    host: str = "0.0.0.0"  # nosec
     port: int = 8000
 
     # JWT
@@ -62,6 +62,7 @@ class Settings(BaseSettings):
             # Strip params asyncpg doesn't understand — SSL handled via connect_args
             for param in ("sslmode", "channel_binding"):
                 import re
+
                 v = re.sub(rf"[?&]{param}=[^&]*", "", v)
                 v = re.sub(r"\?&", "?", v)
                 v = v.rstrip("?").rstrip("&")
