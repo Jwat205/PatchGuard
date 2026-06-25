@@ -56,8 +56,13 @@ def review_pr_task(
         "timestamp": "",
     }
 
+    async def _run():
+        from src.db.database import engine
+        await engine.dispose()
+        await handle_pr_event(event)
+
     try:
-        asyncio.run(handle_pr_event(event))
+        asyncio.run(_run())
     except Exception as exc:
         logger.error("review_pr_task failed", extra={"error": str(exc)})
         raise self.retry(exc=exc)
