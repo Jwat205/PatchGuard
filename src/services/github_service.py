@@ -71,18 +71,24 @@ class GitHubService:
         comments = []
         blocking_count = 0
 
+        body_findings = []
         for f in findings:
-            body = f"**{f['finding_type']}** ({f['severity']})\n{f['message']}"
+            finding_body = f"**{f.get('finding_type') or 'finding'}** ({f.get('severity', 'info')})\n{f['message']}"
             if f.get("suggested_fix"):
-                body += f"\n\n💡 Fix: {f['suggested_fix']}"
+                finding_body += f"\n\n💡 Fix: {f['suggested_fix']}"
             if f.get("remediation"):
-                body += f"\n\n🔧 Remediation: {f['remediation']}"
-            comments.append({"path": f["file_path"], "line": f["line_number"], "body": body})
+                finding_body += f"\n\n🔧 Remediation: {f['remediation']}"
+            if f.get("file_path") and f.get("line_number"):
+                comments.append({"path": f["file_path"], "line": f["line_number"], "body": finding_body})
+            else:
+                body_findings.append(finding_body)
             if f.get("is_blocking"):
                 blocking_count += 1
 
         event = "REQUEST_CHANGES" if blocking_count > 0 else "COMMENT"
         review_body = f"🤖 PatchGuard review — {len(findings)} finding(s) in {latency_ms}ms"
+        if body_findings:
+            review_body += "\n\n" + "\n\n---\n\n".join(body_findings)
 
         url = f"{_GITHUB_API}/repos/{repo_full_name}/pulls/{pr_number}/reviews"
         payload = {"commit_id": commit_id, "body": review_body, "event": event, "comments": comments}

@@ -1,3 +1,4 @@
+import asyncio
 import time
 import uuid
 from typing import Any
@@ -45,8 +46,11 @@ class ReviewOrchestrator:
 
         quality_result = await self._quality.run(context)
         context["quality_findings"] = [f.model_dump() for f in quality_result.findings]
+        await asyncio.sleep(2)
 
         security_result = await self._security.run(context)
+        await asyncio.sleep(2)
+
         dependency_result = await self._dependency.run(context)
 
         for result in (quality_result, security_result, dependency_result):
