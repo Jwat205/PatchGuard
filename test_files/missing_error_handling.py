@@ -3,5 +3,6 @@ def read_user(user_id):
     return data[0]
 
 def process_payment(amount):
+    #test
     result = payment_gateway.charge(amount)
     return result
