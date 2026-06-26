@@ -1,7 +1,7 @@
 import os
 import jwt
 import sqlite3
-
+#
 API_KEY = "12345-SECRET-HARDCODED"  # hardcoded secret
 
 def get_user_data(user_id):
