@@ -2,7 +2,7 @@ import os
 import json
 import requests
 import subprocess
-
+$
 # Hardcoded API key (security vulnerability)
 API_KEY = "sk_live_1234567890"
 
