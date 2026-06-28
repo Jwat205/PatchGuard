@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-import aioredis
+from redis.asyncio import Redis
 import json
 import os
 
@@ -8,7 +8,7 @@ router = APIRouter()
 UPSTASH_URL = os.getenv("UPSTASH_REDIS_URL")
 
 async def get_redis():
-    return aioredis.from_url(UPSTASH_URL, decode_responses=True)
+    return Redis.from_url(UPSTASH_URL, decode_responses=True)
 
 @router.get("/ping")
 async def ping():
