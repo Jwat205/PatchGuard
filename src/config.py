@@ -1,6 +1,7 @@
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
+ # Redis
+import os
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -30,10 +31,12 @@ class Settings(BaseSettings):
     mongodb_url: str = "mongodb://localhost:27017"
     mongodb_db: str = "patchguard"
 
-    # Redis
-    redis_url: str = "redis://localhost:6379"
+   
+
+    redis_url: str = os.getenv("UPSTASH_REDIS_URL")
     redis_db: int = 0
     redis_ttl_seconds: int = 3600
+
 
     # Kafka
     kafka_brokers: str = "localhost:9092"
