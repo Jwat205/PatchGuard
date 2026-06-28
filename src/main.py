@@ -4,7 +4,7 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api import health, reviews, webhooks
+from src.api import reviews, webhooks, ping
 from src.db.database import create_tables, dispose_engine
 from src.db.mongodb import close_mongo
 from src.db.redis_client import close_redis
@@ -40,10 +40,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(health.router)
+# REMOVE the old health router
+# app.include_router(health.router)
+
+# KEEP the correct health router
+app.include_router(ping.router)
+
 app.include_router(webhooks.router)
 app.include_router(reviews.router)
-
 
 app.mount("/metrics", metrics_app)
 
