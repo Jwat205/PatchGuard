@@ -10,8 +10,9 @@ logger = get_logger(__name__)
 
 celery_app = Celery(
     "patchguard",
-    broker=settings.redis_url,
-    backend=settings.redis_url,
+    ,broker_url = os.getenv("UPSTASH_REDIS_URL"),
+result_backend = os.getenv("UPSTASH_REDIS_URL")
+
 )
 
 _ssl_config = {"ssl_cert_reqs": ssl.CERT_NONE} if settings.redis_url.startswith("rediss://") else {}
