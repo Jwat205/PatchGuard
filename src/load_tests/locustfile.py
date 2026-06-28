@@ -5,4 +5,4 @@ class LoadTest(HttpUser):
 
     @task
     def ping(self):
-        self.client.get("/health/ping")
+        self.client.get("/ping")
