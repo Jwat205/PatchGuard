@@ -1,5 +1,6 @@
 import json
 import uuid
+import time
 from datetime import datetime
 
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request, status
@@ -21,6 +22,10 @@ async def receive_webhook(
     x_hub_signature_256: str | None = Header(default=None),
     x_github_event: str | None = Header(default=None),
 ) -> WebhookResponse:
+
+    #Start latency timer
+    start = time.perf_counter()
+
     raw_body = await request.body()
 
     if not validate_github_signature(raw_body, x_hub_signature_256 or ""):
@@ -59,5 +64,9 @@ async def receive_webhook(
     webhook_counter.inc()
     background_tasks.add_task(handle_pr_event, event)
     logger.info("PR event queued", extra={"event_id": event_id})
+
+    #End latency timer
+    latency_ms = (time.perf_counter() - start) * 1000
+    logger.info(f"Webhook hot-path latency: {latency_ms:.3f}ms")
 
     return WebhookResponse(success=True, message="Review queued", task_id=event_id)
