@@ -46,9 +46,13 @@ class Settings(BaseSettings):
     kafka_topic_review_results: str = "review-results"
     kafka_consumer_group: str = "patchguard-consumers"
 
+   
     # API
-    host: str = "0.0.0.0"
-    port: int = 8000
+    import os
+
+# Inside your config class or file:
+    host: str = os.getenv("HOST", "127.0.0.1")
+    port: int = int(os.getenv("PORT", 8000))
 
     # JWT
     jwt_secret_key: str = "change-me-in-production"
