@@ -28,8 +28,10 @@ openai>=1.0.0
 PyGithub==2.1.1
 requests==2.33.0
 
-# Auth
+# Auth & Crypto (pyasn1/ecdsa pulled in here)
 python-jose[cryptography]==3.4.0
+pyasn1>=0.6.4
+ecdsa==0.19.2
 
 # Logging & Observability
 python-json-logger==2.0.7
@@ -43,3 +45,5 @@ python-dotenv==1.2.2
 
 # Utilities
 click==8.3.3
+protobuf>=5.29.6
+starlette>=0.47.2
