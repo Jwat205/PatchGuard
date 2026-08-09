@@ -10,4 +10,4 @@ jobs:
         with: { python-version: "3.11", cache: "pip" }
       - run: pip install bandit safety
       - run: bandit -r src/ -ll
-      - run: safety check -r requirements.txt
+      - run: safety scan -r requirements.txt
