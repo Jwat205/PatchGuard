@@ -2,8 +2,8 @@ import orjson
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.session import get_db
 from src.db.redis_client import get_redis
+from src.db.session import get_db
 
 router = APIRouter()
 

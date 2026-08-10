@@ -43,11 +43,10 @@ class Settings(BaseSettings):
     kafka_topic_review_results: str = "review-results"
     kafka_consumer_group: str = "patchguard-consumers"
 
-  
     # API
     import os
 
-# Inside your config class or file:
+    # Inside your config class or file:
     host: str = os.getenv("HOST", "127.0.0.1")
     port: int = int(os.getenv("PORT", 8000))
 
@@ -66,6 +65,7 @@ class Settings(BaseSettings):
             # Strip params asyncpg doesn't understand — SSL handled via connect_args
             for param in ("sslmode", "channel_binding"):
                 import re
+
                 v = re.sub(rf"[?&]{param}=[^&]*", "", v)
                 v = re.sub(r"\?&", "?", v)
                 v = v.rstrip("?").rstrip("&")

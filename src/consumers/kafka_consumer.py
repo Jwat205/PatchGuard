@@ -44,7 +44,10 @@ async def consume() -> None:
                         await handle_pr_event(message.value)
                         consumer.commit()
                     except Exception as exc:
-                        logger.error("Failed to process message", extra={"error": str(exc), "offset": message.offset})
+                        logger.error(
+                            "Failed to process message",
+                            extra={"error": str(exc), "offset": message.offset},
+                        )
     except KafkaError as exc:
         logger.error("Kafka consumer error", extra={"error": str(exc)})
     finally:
