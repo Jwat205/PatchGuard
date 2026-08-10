@@ -3,7 +3,7 @@ import aiohttp
 from src.config import settings
 from src.db.redis_client import get_redis
 from src.services.cache_service import CacheService
-from src.utils.cache_keys import github_file_key, pr_diff_key
+from src.utils.cache_keys import pr_diff_key
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)

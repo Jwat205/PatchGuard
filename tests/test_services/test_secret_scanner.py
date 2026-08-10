@@ -1,5 +1,3 @@
-import pytest
-
 from src.services.secret_scanner import scan_for_secrets, shannon_entropy
 
 # ── Entropy ───────────────────────────────────────────────────────────────────
