@@ -1,15 +1,32 @@
 name: Lint & Type Check
 on: [push, pull_request]
 
+permissions:
+  contents: write  # Required to allow GitHub Actions to commit and push changes
+
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          ref: ${{ github.head_ref || github.ref_name }}
+
       - uses: actions/setup-python@v5
         with: { python-version: "3.11", cache: "pip" }
+
       - run: pip install black isort flake8 pylint mypy pydantic-settings
-      - run: black --check src/ tests/
-      - run: isort --check-only src/ tests/
+
+      # 1. Automatically reformat files in place
+      - run: black src/ tests/
+      - run: isort src/ tests/
+
+      # 2. Automatically push formatted changes back to your branch
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: auto-format code with Black and isort"
+
+      # 3. Run remaining checks that don't auto-fix
       - run: flake8 src/ tests/ --max-line-length=100
       - run: mypy src/
