@@ -1,7 +1,9 @@
+# Redis
+import os
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
- # Redis
-import os
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -31,12 +33,9 @@ class Settings(BaseSettings):
     mongodb_url: str = "mongodb://localhost:27017"
     mongodb_db: str = "patchguard"
 
-   
-
     redis_url: str = os.getenv("UPSTASH_REDIS_URL")
     redis_db: int = 0
     redis_ttl_seconds: int = 3600
-
 
     # Kafka
     kafka_brokers: str = "localhost:9092"
@@ -46,11 +45,10 @@ class Settings(BaseSettings):
     kafka_topic_review_results: str = "review-results"
     kafka_consumer_group: str = "patchguard-consumers"
 
-   
     # API
     import os
 
-# Inside your config class or file:
+    # Inside your config class or file:
     host: str = os.getenv("HOST", "127.0.0.1")
     port: int = int(os.getenv("PORT", 8000))
 
@@ -69,6 +67,7 @@ class Settings(BaseSettings):
             # Strip params asyncpg doesn't understand — SSL handled via connect_args
             for param in ("sslmode", "channel_binding"):
                 import re
+
                 v = re.sub(rf"[?&]{param}=[^&]*", "", v)
                 v = re.sub(r"\?&", "?", v)
                 v = v.rstrip("?").rstrip("&")

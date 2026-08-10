@@ -30,7 +30,9 @@ class GitHubService:
             return cached
 
         url = f"{_GITHUB_API}/repos/{repo_full_name}/pulls/{pr_number}"
-        async with aiohttp.ClientSession(headers={**self._headers, "Accept": "application/vnd.github.v3.diff"}) as session:
+        async with aiohttp.ClientSession(
+            headers={**self._headers, "Accept": "application/vnd.github.v3.diff"}
+        ) as session:
             async with session.get(url) as resp:
                 resp.raise_for_status()
                 diff = await resp.text()
@@ -54,6 +56,7 @@ class GitHubService:
                 resp.raise_for_status()
                 data = await resp.json()
                 import base64
+
                 content = base64.b64decode(data["content"]).decode("utf-8")
 
         await cache.set_cached_file(repo_full_name, file_path, ref, content)
@@ -79,7 +82,9 @@ class GitHubService:
             if f.get("remediation"):
                 finding_body += f"\n\n🔧 Remediation: {f['remediation']}"
             if f.get("file_path") and f.get("line_number"):
-                comments.append({"path": f["file_path"], "line": f["line_number"], "body": finding_body})
+                comments.append(
+                    {"path": f["file_path"], "line": f["line_number"], "body": finding_body}
+                )
             else:
                 body_findings.append(finding_body)
             if f.get("is_blocking"):
@@ -91,7 +96,12 @@ class GitHubService:
             review_body += "\n\n" + "\n\n---\n\n".join(body_findings)
 
         url = f"{_GITHUB_API}/repos/{repo_full_name}/pulls/{pr_number}/reviews"
-        payload = {"commit_id": commit_id, "body": review_body, "event": event, "comments": comments}
+        payload = {
+            "commit_id": commit_id,
+            "body": review_body,
+            "event": event,
+            "comments": comments,
+        }
 
         async with aiohttp.ClientSession(headers=self._headers) as session:
             async with session.post(url, json=payload) as resp:

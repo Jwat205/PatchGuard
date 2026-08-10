@@ -4,7 +4,7 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api import reviews, webhooks, ping
+from src.api import ping, reviews, webhooks
 from src.db.database import create_tables, dispose_engine
 from src.db.mongodb import close_mongo
 from src.db.redis_client import close_redis
