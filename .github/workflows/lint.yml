@@ -16,17 +16,16 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11", cache: "pip" }
 
-      - run: pip install black isort flake8 pylint mypy pydantic-settings
+      - run: pip install ruff mypy pydantic-settings
 
-      # 1. Automatically reformat files in place
-      - run: black src/ tests/
-      - run: isort src/ tests/
+      # 1. Automatically remove unused imports, sort imports, and format code
+      - run: ruff check --fix --select F401,E203 src/ tests/
+      - run: ruff format --line-length=100 src/ tests/
 
-      # 2. Automatically push formatted changes back to your branch
+      # 2. Automatically push the fixed files back to your branch
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "style: auto-format code with Black and isort"
+          commit_message: "style: auto-fix unused imports and format code with Ruff"
 
-      # 3. Run remaining checks that don't auto-fix
-      - run: flake8 src/ tests/ --max-line-length=100
+      # 3. Run remaining static type checks
       - run: mypy src/
