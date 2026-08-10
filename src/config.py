@@ -1,3 +1,5 @@
+import os
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -31,7 +33,7 @@ class Settings(BaseSettings):
     mongodb_db: str = "patchguard"
 
     # Redis
-    redis_url: str = "redis://localhost:6379"
+    redis_url: str = os.getenv("UPSTASH_REDIS_URL", "redis://localhost:6379")
     redis_db: int = 0
     redis_ttl_seconds: int = 3600
 
@@ -44,9 +46,6 @@ class Settings(BaseSettings):
     kafka_consumer_group: str = "patchguard-consumers"
 
     # API
-    import os
-
-    # Inside your config class or file:
     host: str = os.getenv("HOST", "127.0.0.1")
     port: int = int(os.getenv("PORT", 8000))
 
