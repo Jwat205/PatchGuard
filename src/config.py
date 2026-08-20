@@ -46,12 +46,6 @@ class Settings(BaseSettings):
     kafka_consumer_group: str = "patchguard-consumers"
 
     # API
-<<<<<<< Updated upstream
-=======
-    import os
-
-# Inside your config class or file:
->>>>>>> Stashed changes
     host: str = os.getenv("HOST", "127.0.0.1")
     port: int = int(os.getenv("PORT", 8000))
 
