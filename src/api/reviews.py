@@ -1,5 +1,6 @@
 import orjson
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth import verify_jwt_token
@@ -23,12 +24,12 @@ async def list_reviews(
     if cached:
         return {"success": True, "data": {"reviews": orjson.loads(cached)}}
 
-    stmt = """
+    stmt = text("""
     SELECT id, pr_number, repo, summary, created_at
     FROM pr_reviews
     ORDER BY created_at DESC
     LIMIT 50;
-    """
+    """)
 
     result = await db.execute(stmt)
     rows = [dict(row) for row in result.mappings().all()]
@@ -51,12 +52,12 @@ async def get_single_review(
     if cached:
         return orjson.loads(cached)
 
-    stmt_review = """
+    stmt_review = text("""
     SELECT *
     FROM pr_reviews
     WHERE id = :id
     LIMIT 1;
-    """
+    """)
 
     review_result = await db.execute(stmt_review, {"id": review_id})
     review_row = review_result.mappings().first()
@@ -64,11 +65,11 @@ async def get_single_review(
     if not review_row:
         raise HTTPException(status_code=404, detail="Review not found")
 
-    stmt_findings = """
+    stmt_findings = text("""
     SELECT *
     FROM findings
     WHERE review_id = :id;
-    """
+    """)
 
     findings_result = await db.execute(stmt_findings, {"id": review_id})
     findings_rows = findings_result.mappings().all()
