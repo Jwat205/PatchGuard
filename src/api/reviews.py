@@ -25,8 +25,8 @@ async def list_reviews(
         return {"success": True, "data": {"reviews": orjson.loads(cached)}}
 
     stmt = text("""
-    SELECT id, pr_number, repo, summary, created_at
-    FROM pr_reviews
+    SELECT id, pr_number, repo_full_name, summary, created_at
+    FROM pull_requests
     ORDER BY created_at DESC
     LIMIT 50;
     """)
@@ -54,7 +54,7 @@ async def get_single_review(
 
     stmt_review = text("""
     SELECT *
-    FROM pr_reviews
+    FROM pull_requests
     WHERE id = :id
     LIMIT 1;
     """)
