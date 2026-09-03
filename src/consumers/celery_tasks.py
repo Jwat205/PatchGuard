@@ -1,4 +1,5 @@
 import asyncio
+import os
 import ssl
 
 from celery import Celery
@@ -8,12 +9,14 @@ from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
+# Initialize Celery with Upstash Redis
 celery_app = Celery(
     "patchguard",
-    broker=settings.redis_url,
-    backend=settings.redis_url,
+    broker=os.getenv("UPSTASH_REDIS_URL"),
+    backend=os.getenv("UPSTASH_REDIS_URL"),
 )
 
+# Enable SSL if using rediss://
 _ssl_config = {"ssl_cert_reqs": ssl.CERT_NONE} if settings.redis_url.startswith("rediss://") else {}
 
 celery_app.conf.update(
