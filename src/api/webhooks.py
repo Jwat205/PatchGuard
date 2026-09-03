@@ -10,6 +10,8 @@ from src.consumers.handlers import handle_pr_event
 
 async def publish_pr_event(event: dict) -> None:
     await handle_pr_event(event)
+
+
 from src.models.schemas import GitHubWebhookPayload, WebhookResponse
 from src.services.monitoring import webhook_counter
 from src.utils.logging import get_logger
