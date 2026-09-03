@@ -37,17 +37,9 @@ class Settings(BaseSettings):
     redis_db: int = 0
     redis_ttl_seconds: int = 3600
 
-    # Kafka
-    kafka_brokers: str = "localhost:9092"
-    kafka_username: str = ""
-    kafka_password: str = ""
-    kafka_topic_pr_events: str = "pr-events"
-    kafka_topic_review_results: str = "review-results"
-    kafka_consumer_group: str = "patchguard-consumers"
-
     # API
-    host: str = os.getenv("HOST", "127.0.0.1")
-    port: int = int(os.getenv("PORT", 8000))
+    host: str = "0.0.0.0"
+    port: int = 8000
 
     # JWT
     jwt_secret_key: str = "change-me-in-production"
