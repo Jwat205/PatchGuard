@@ -10,7 +10,7 @@ GitHub sends a webhook to PatchGuard when a PR is opened or updated. The event i
 GitHub PR → webhook → Celery task (Redis) → orchestrator → 3 AI agents → GitHub review comment
                             ↓ (fallback if Redis down)                  ↓
                     FastAPI BackgroundTask               PostgreSQL (reviews + findings)
-                                                        MongoDB    (audit log)
+                                                        DynamoDB   (audit log)
                                                         Redis      (diff cache)
                                                         Prometheus (/metrics)
 ```
@@ -32,10 +32,10 @@ A regex + Shannon entropy secret scanner runs before the agents (no LLM needed) 
 | LLM | OpenAI-compatible — Ollama locally, Groq in production |
 | PostgreSQL | Neon (free tier) — stores reviews and findings |
 | Redis | Upstash (free tier) — caching + Celery broker |
-| MongoDB | Motor (async) — append-only event audit log |
+| DynamoDB | aioboto3 (async) — append-only event audit log |
 | Observability | Prometheus counters/histograms + OpenTelemetry traces |
-| Hosting | Render (Docker, free tier) |
-| CI/CD | GitHub Actions → ghcr.io → Render deploy hook |
+| Hosting | AWS EC2 (Docker, free tier) |
+| CI/CD | GitHub Actions → ECR → SSM Run Command deploy to EC2 |
 
 ## Local setup
 
@@ -65,7 +65,7 @@ LLM_MODEL=qwen2.5-coder:7b
 Start local services and run:
 
 ```bash
-docker compose up -d          # PostgreSQL, Redis, MongoDB
+docker compose up -d          # PostgreSQL, Redis, DynamoDB Local
 uvicorn src.main:app --reload
 ```
 
@@ -94,37 +94,43 @@ For Ollama: install from [ollama.com](https://ollama.com), then `ollama pull qwe
 
 | Service | Provider | What it stores |
 |---|---|---|
-| PostgreSQL | [Neon](https://neon.tech) | PR reviews, individual findings |
-| Redis | [Upstash](https://upstash.com) | Diff cache + Celery task queue |
-| Hosting | [Render](https://render.com) | Web service (Docker) |
+| PostgreSQL | [RDS](https://aws.amazon.com/rds/) `db.t3.micro` | PR reviews, individual findings |
+| Redis | [ElastiCache](https://aws.amazon.com/elasticache/) `cache.t3.micro` | Diff cache + Celery task queue |
+| Audit log | [DynamoDB](https://aws.amazon.com/dynamodb/) | Append-only PR/review event log |
+| Hosting | [EC2](https://aws.amazon.com/ec2/) `t3.micro` (Docker) | Web service |
+| Image registry | [ECR](https://aws.amazon.com/ecr/) | Docker images |
+
+Provisioned by `scripts/provision_aws.py` (torn down by `scripts/teardown_aws.py`) - see that
+script's docstring for what it creates and why.
 
 ## Deployment
 
-The service runs on Render as a Docker container (`python:3.11-slim`).
+The service runs on an EC2 instance as a single Docker container, in a VPC alongside RDS and
+ElastiCache (both private - reachable only from that instance's security group).
 
 1. Push to `main` → GitHub Actions runs the test suite
-2. On success, Actions triggers the Render deploy hook
-3. Render pulls the new image and restarts the service
+2. On success, Actions builds the Docker image and pushes it to ECR
+3. Actions calls the AWS API (SSM Run Command) to tell the EC2 instance to pull the new image
+   and restart the container - no SSH connection from the runner, ever
 
-Configure these env vars in the Render dashboard (Environment tab):
+Required GitHub Actions secrets (repo Settings → Secrets and variables → Actions):
 
 ```
-DATABASE_URL          postgresql://... (Neon)
-REDIS_URL             rediss://...     (Upstash)
-MONGODB_URL           mongodb+srv://...
-GITHUB_TOKEN          ghp_...
-GITHUB_WEBHOOK_SECRET (same value as your GitHub App webhook secret)
-JWT_SECRET_KEY        (random 32+ char string)
-LLM_BASE_URL          https://api.groq.com/openai/v1
-LLM_API_KEY           (Groq API key)
-LLM_MODEL             llama-3.1-8b-instant
-APP_ENV               production
+AWS_ACCESS_KEY_ID      IAM user with ecr:*, ssm:SendCommand, ssm:GetCommandInvocation, ec2:DescribeInstances
+AWS_SECRET_ACCESS_KEY  (secret key for that user)
 ```
+
+The app's runtime env vars (`DATABASE_URL`, `REDIS_URL`, `AWS_REGION`, `GITHUB_TOKEN`,
+`GITHUB_WEBHOOK_SECRET`, `JWT_SECRET_KEY`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`) live in
+`/opt/patchguard/.env` on the EC2 instance itself, not in GitHub Actions - the deploy step only
+pulls and restarts the container, it never carries secrets through CI. Set that file up once
+after provisioning (values come from `scripts/aws-provision-output.json` and the RDS/
+ElastiCache console pages for their endpoints).
 
 ## GitHub App setup
 
 1. Go to GitHub → Settings → Developer Settings → GitHub Apps → New GitHub App
-2. Set webhook URL to `https://patchguard.onrender.com/github/webhook`
+2. Set webhook URL to `http://<ec2-public-ip>/github/webhook` (or a domain pointed at it)
 3. Set webhook secret to match `GITHUB_WEBHOOK_SECRET`
 4. Repository permissions: **Contents** read, **Pull requests** read+write
 5. Subscribe to: **Pull request** events
@@ -178,7 +184,7 @@ src/
   api/          webhooks.py, reviews.py, health.py
   agents/       base_agent.py, quality_agent.py, security_agent.py, dependency_agent.py
   consumers/    handlers.py, celery_tasks.py
-  db/           database.py (PostgreSQL), redis_client.py, mongodb.py
+  db/           database.py (PostgreSQL), redis_client.py, dynamodb.py
   models/       postgres_models.py (ORM), schemas.py (Pydantic)
   services/     orchestrator.py, secret_scanner.py, cache_service.py,
                 event_store.py, github_service.py, monitoring.py

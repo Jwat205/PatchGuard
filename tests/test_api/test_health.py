@@ -8,7 +8,7 @@ from httpx import AsyncClient
 async def test_health_returns_200(client: AsyncClient):
     with (
         patch("src.api.health.get_redis", return_value=AsyncMock(ping=AsyncMock())),
-        patch("src.api.health.get_mongo_db", return_value=AsyncMock(command=AsyncMock())),
+        patch("src.api.health.dynamodb.ping", new_callable=AsyncMock),
     ):
         response = await client.get("/health")
     assert response.status_code == 200

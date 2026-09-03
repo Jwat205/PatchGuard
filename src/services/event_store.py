@@ -1,14 +1,26 @@
+import uuid
+from decimal import Decimal
 from typing import Any
 
-from src.db.mongodb import get_mongo_db
-from src.models.mongodb_models import PREvent, ReviewEvent
+from src.config import settings
+from src.db.dynamodb import dynamodb_resource
+from src.models.dynamodb_models import PREvent, ReviewEvent
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
 
+def _decimal_to_number(value: Any) -> Any:
+    if isinstance(value, Decimal):
+        return int(value) if value % 1 == 0 else float(value)
+    if isinstance(value, dict):
+        return {k: _decimal_to_number(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_decimal_to_number(v) for v in value]
+    return value
+
+
 async def record_pr_event(event: dict[str, Any]) -> None:
-    db = get_mongo_db()
     doc = PREvent(
         event_id=event["event_id"],
         event_type=event["event_type"],
@@ -17,7 +29,9 @@ async def record_pr_event(event: dict[str, Any]) -> None:
         head_sha=event["head_sha"],
         payload=event,
     )
-    await db["pr_events"].insert_one(doc.model_dump())
+    async with dynamodb_resource() as resource:
+        table = await resource.Table(settings.dynamodb_pr_events_table)
+        await table.put_item(Item=doc.to_item())
     logger.info("PR event recorded", extra={"event_id": event["event_id"]})
 
 
@@ -31,9 +45,6 @@ async def record_review_event(
     validation_passed: bool,
     latency_ms: int,
 ) -> None:
-    import uuid
-
-    db = get_mongo_db()
     doc = ReviewEvent(
         event_id=str(uuid.uuid4()),
         review_id=review_id,
@@ -45,10 +56,16 @@ async def record_review_event(
         validation_passed=validation_passed,
         latency_ms=latency_ms,
     )
-    await db["review_events"].insert_one(doc.model_dump())
+    async with dynamodb_resource() as resource:
+        table = await resource.Table(settings.dynamodb_review_events_table)
+        await table.put_item(Item=doc.to_item())
 
 
 async def get_review_events(review_id: str) -> list[dict]:
-    db = get_mongo_db()
-    cursor = db["review_events"].find({"review_id": review_id})
-    return [doc async for doc in cursor]
+    async with dynamodb_resource() as resource:
+        table = await resource.Table(settings.dynamodb_review_events_table)
+        response = await table.query(
+            KeyConditionExpression="review_id = :review_id",
+            ExpressionAttributeValues={":review_id": review_id},
+        )
+    return [_decimal_to_number(item) for item in response.get("Items", [])]

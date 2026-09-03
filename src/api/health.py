@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.db import dynamodb
 from src.db.database import get_db
-from src.db.mongodb import get_mongo_db
 from src.db.redis_client import get_redis
 from src.models.schemas import HealthResponse
 
@@ -29,13 +29,12 @@ async def health_check(db: AsyncSession = Depends(get_db)) -> HealthResponse:
     except Exception:
         services["redis"] = "error"
 
-    # MongoDB
+    # DynamoDB
     try:
-        mongo = get_mongo_db()
-        await mongo.command("ping")
-        services["mongodb"] = "ok"
+        await dynamodb.ping()
+        services["dynamodb"] = "ok"
     except Exception:
-        services["mongodb"] = "error"
+        services["dynamodb"] = "error"
 
     overall = "ok" if all(v == "ok" for v in services.values()) else "degraded"
     return HealthResponse(status=overall, services=services)

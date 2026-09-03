@@ -28,9 +28,11 @@ class Settings(BaseSettings):
     postgres_password: str = "patchguard"
     postgres_db: str = "patchguard"
 
-    # MongoDB
-    mongodb_url: str = "mongodb://localhost:27017"
-    mongodb_db: str = "patchguard"
+    # DynamoDB
+    aws_region: str = "us-east-1"
+    dynamodb_endpoint_url: str = ""
+    dynamodb_pr_events_table: str = "patchguard-pr-events"
+    dynamodb_review_events_table: str = "patchguard-review-events"
 
     # Redis
     redis_url: str = os.getenv("UPSTASH_REDIS_URL", "redis://localhost:6379")

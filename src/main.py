@@ -7,7 +7,6 @@ from src.api import health, ping, reviews, webhooks
 from src.models import postgres_models  # noqa: F401 — registers models with Base
 from src.config import settings
 from src.db.database import create_tables, dispose_engine
-from src.db.mongodb import close_mongo
 from src.db.redis_client import close_redis
 from src.services.monitoring import metrics_app
 from src.utils.logging import get_logger, setup_logging
@@ -23,7 +22,6 @@ async def lifespan(app: FastAPI):
     await create_tables()
     yield
     await close_redis()
-    await close_mongo()
     await dispose_engine()
 
 
