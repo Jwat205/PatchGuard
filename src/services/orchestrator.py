@@ -1,12 +1,10 @@
 import asyncio
 import time
-import uuid
 from typing import Any
 
 from src.agents.dependency_agent import DependencyAgent
 from src.agents.quality_agent import QualityAgent
 from src.agents.security_agent import SecurityAgent
-from src.models.postgres_models import Finding
 from src.services.event_store import record_review_event
 from src.services.github_service import GitHubService
 from src.services.monitoring import (

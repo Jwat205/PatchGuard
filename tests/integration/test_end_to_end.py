@@ -2,8 +2,9 @@
 Integration: webhook POST → queue → agent review → DB result.
 Skipped when Kafka/Redis are not available (CI without infrastructure).
 """
+
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient

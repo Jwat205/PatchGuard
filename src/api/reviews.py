@@ -1,78 +1,86 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+import orjson
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth import verify_jwt_token
-from src.db.database import get_db
-from src.models.postgres_models import Finding, PRReview
-from src.models.schemas import APIResponse
+from src.db.redis_client import get_redis
+from src.db.session import get_db
 
-router = APIRouter(prefix="/reviews", tags=["reviews"])
+router = APIRouter()
 
-
-@router.get("", response_model=APIResponse)
-async def list_reviews(
-    db: AsyncSession = Depends(get_db),
-    user_id: str = Depends(verify_jwt_token),
-) -> APIResponse:
-    result = await db.execute(select(PRReview).order_by(PRReview.created_at.desc()).limit(50))
-    reviews = result.scalars().all()
-    data = [
-        {
-            "id": r.id,
-            "repo": r.repo_full_name,
-            "pr_number": r.pr_number,
-            "status": r.status,
-            "latency_ms": r.latency_ms,
-            "quality_findings": r.quality_findings,
-            "security_findings": r.security_findings,
-            "created_at": r.created_at.isoformat() if r.created_at else None,
-        }
-        for r in reviews
-    ]
-    return APIResponse(success=True, message="ok", data={"reviews": data})
+CACHE_TTL = 300  # 5 minutes
+CACHE_KEY_LIST = "pg:reviews:list:latest50"
 
 
-@router.get("/{review_id}", response_model=APIResponse)
-async def get_review(
-    review_id: str,
-    db: AsyncSession = Depends(get_db),
-    user_id: str = Depends(verify_jwt_token),
-) -> APIResponse:
-    result = await db.execute(select(PRReview).where(PRReview.id == review_id))
-    review = result.scalar_one_or_none()
-    if not review:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
+@router.get("/reviews")
+async def list_reviews(db: AsyncSession = Depends(get_db)):
+    redis = await get_redis()
 
-    findings_result = await db.execute(select(Finding).where(Finding.review_id == review_id))
-    findings = findings_result.scalars().all()
+    # Try Redis first
+    cached = await redis.get(CACHE_KEY_LIST)
+    if cached:
+        return orjson.loads(cached)
 
-    return APIResponse(
-        success=True,
-        message="ok",
-        data={
-            "review": {
-                "id": review.id,
-                "repo": review.repo_full_name,
-                "pr_number": review.pr_number,
-                "status": review.status,
-                "summary": review.summary,
-                "latency_ms": review.latency_ms,
-                "agent_results": review.agent_results,
-                "created_at": review.created_at.isoformat() if review.created_at else None,
-            },
-            "findings": [
-                {
-                    "id": f.id,
-                    "agent_type": f.agent_type,
-                    "file_path": f.file_path,
-                    "line_number": f.line_number,
-                    "finding_type": f.finding_type,
-                    "severity": f.severity,
-                    "message": f.message,
-                    "is_blocking": f.is_blocking,
-                }
-                for f in findings
-            ],
-        },
-    )
+    # Cache miss → query DB
+    stmt = """
+    SELECT id, pr_number, repo, summary, created_at
+    FROM pr_reviews
+    ORDER BY created_at DESC
+    LIMIT 50;
+    """
+
+    result = await db.execute(stmt)
+    rows = result.mappings().all()
+
+    payload = [dict(row) for row in rows]
+    serialized = orjson.dumps(payload)
+
+    # Store in Redis
+    await redis.set(CACHE_KEY_LIST, serialized, ex=CACHE_TTL)
+
+    return payload
+
+
+@router.get("/reviews/{review_id}")
+async def get_single_review(review_id: int, db: AsyncSession = Depends(get_db)):
+    redis = await get_redis()
+    cache_key = f"pg:review:{review_id}"
+
+    # Try Redis first
+    cached = await redis.get(cache_key)
+    if cached:
+        return orjson.loads(cached)
+
+    # Cache miss → query DB
+    stmt_review = """
+    SELECT *
+    FROM pr_reviews
+    WHERE id = :id
+    LIMIT 1;
+    """
+
+    review_result = await db.execute(stmt_review, {"id": review_id})
+    review_row = review_result.mappings().first()
+
+    if not review_row:
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    stmt_findings = """
+    SELECT *
+    FROM findings
+    WHERE review_id = :id;
+    """
+
+    findings_result = await db.execute(stmt_findings, {"id": review_id})
+    findings_rows = findings_result.mappings().all()
+
+    payload = {
+        "review": dict(review_row),
+        "findings": [dict(f) for f in findings_rows],
+    }
+
+    serialized = orjson.dumps(payload)
+
+    # Store in Redis
+    await redis.set(cache_key, serialized, ex=CACHE_TTL)
+
+    return payload

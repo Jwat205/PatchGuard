@@ -1,20 +1,19 @@
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
-from fastapi import Request
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api import reviews, webhooks, ping, health
+from src.api import health, ping, reviews, webhooks
+from src.config import settings
 from src.db.database import create_tables, dispose_engine
 from src.db.mongodb import close_mongo
 from src.db.redis_client import close_redis
 from src.services.monitoring import metrics_app
 from src.utils.logging import get_logger, setup_logging
-from src.config import settings
 
 setup_logging()
 logger = get_logger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,7 +24,6 @@ async def lifespan(app: FastAPI):
     await close_redis()
     await close_mongo()
     await dispose_engine()
-
 
 
 app = FastAPI(
@@ -55,4 +53,3 @@ async def debug_token(request: Request):
     auth_header = request.headers.get("authorization", "")
     print(f"DEBUG: Authorization header = {auth_header}")
     return {"header": auth_header}
-

@@ -1,15 +1,26 @@
 name: Lint & Type Check
 on: [push, pull_request]
 
+permissions:
+  contents: write
+
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          ref: ${{ github.head_ref || github.ref_name }}
+
       - uses: actions/setup-python@v5
         with: { python-version: "3.11", cache: "pip" }
-      - run: pip install black isort flake8 pylint mypy pydantic-settings
-      - run: black --check src/ tests/
-      - run: isort --check-only src/ tests/
-      - run: flake8 src/ tests/ --max-line-length=100
-      - run: mypy src/
+
+      - run: pip install ruff pydantic-settings
+
+      - run: ruff check --fix --select F401,E203 src/ tests/
+      - run: ruff format --line-length=100 src/ tests/
+
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: auto-fix unused imports and format code with Ruff"

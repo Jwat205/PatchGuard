@@ -1,6 +1,6 @@
 import json
-import uuid
 import time
+import uuid
 from datetime import datetime
 
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request, status
@@ -23,7 +23,7 @@ async def receive_webhook(
     x_github_event: str | None = Header(default=None),
 ) -> WebhookResponse:
 
-    #Start latency timer
+    # Start latency timer
     start = time.perf_counter()
 
     raw_body = await request.body()
@@ -65,7 +65,7 @@ async def receive_webhook(
     background_tasks.add_task(handle_pr_event, event)
     logger.info("PR event queued", extra={"event_id": event_id})
 
-    #End latency timer
+    # End latency timer
     latency_ms = (time.perf_counter() - start) * 1000
     logger.info(f"Webhook hot-path latency: {latency_ms:.3f}ms")
 

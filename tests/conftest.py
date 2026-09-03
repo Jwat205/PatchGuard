@@ -1,9 +1,8 @@
 import asyncio
 import hashlib
 import hmac
-import json
 from collections.abc import AsyncGenerator
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import fakeredis.aioredis
 import pytest
@@ -11,7 +10,6 @@ import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from src.config import settings
 from src.db.database import Base, get_db
 from src.main import app
 from src.models.schemas import AgentFinding, AgentResult
@@ -87,6 +85,7 @@ def make_signature(webhook_secret):
     def _sign(body: bytes) -> str:
         sig = hmac.new(webhook_secret.encode(), body, hashlib.sha256).hexdigest()
         return f"sha256={sig}"
+
     return _sign
 
 

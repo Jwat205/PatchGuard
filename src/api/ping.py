@@ -1,10 +1,12 @@
+import json
+
 from fastapi import APIRouter
 from redis.asyncio import Redis
-import json
 
 router = APIRouter(prefix="/ping", tags=["ping"])
 
 redis = Redis.from_url("redis://localhost:6379", decode_responses=True)
+
 
 @router.get("/")
 async def cached_ping():

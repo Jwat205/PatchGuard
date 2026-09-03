@@ -58,6 +58,7 @@ def review_pr_task(
 
     async def _run():
         from src.db.database import engine
+
         await engine.dispose()
         await handle_pr_event(event)
 
