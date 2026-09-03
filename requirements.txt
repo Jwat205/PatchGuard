@@ -31,7 +31,6 @@ requests==2.33.0
 
 # Auth & Crypto
 python-jose[cryptography]==3.4.0
-pyasn1>=0.6.4
 
 # Logging & Observability
 python-json-logger==2.0.7
