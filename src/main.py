@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api import health, ping, reviews, webhooks
+from src.models import postgres_models  # noqa: F401 — registers models with Base
 from src.config import settings
 from src.db.database import create_tables, dispose_engine
 from src.db.mongodb import close_mongo
