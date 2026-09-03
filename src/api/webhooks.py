@@ -6,6 +6,10 @@ from datetime import datetime
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request, status
 
 from src.consumers.handlers import handle_pr_event
+
+
+async def publish_pr_event(event: dict) -> None:
+    await handle_pr_event(event)
 from src.models.schemas import GitHubWebhookPayload, WebhookResponse
 from src.services.monitoring import webhook_counter
 from src.utils.logging import get_logger
@@ -62,7 +66,7 @@ async def receive_webhook(
     }
 
     webhook_counter.inc()
-    background_tasks.add_task(handle_pr_event, event)
+    background_tasks.add_task(publish_pr_event, event)
     logger.info("PR event queued", extra={"event_id": event_id})
 
     # End latency timer

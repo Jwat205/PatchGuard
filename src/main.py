@@ -48,6 +48,11 @@ app.include_router(reviews.router)
 app.mount("/metrics", metrics_app)
 
 
+@app.get("/")
+async def root():
+    return {"service": "PatchGuard"}
+
+
 @app.get("/debug-token")
 async def debug_token(request: Request):
     auth_header = request.headers.get("authorization", "")

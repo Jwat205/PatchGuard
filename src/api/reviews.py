@@ -2,8 +2,9 @@ import orjson
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.redis_client import get_redis
+from src.auth import verify_jwt_token
 from src.db.database import get_db
+from src.db.redis_client import get_redis
 
 router = APIRouter()
 
@@ -12,15 +13,16 @@ CACHE_KEY_LIST = "pg:reviews:list:latest50"
 
 
 @router.get("/reviews")
-async def list_reviews(db: AsyncSession = Depends(get_db)):
+async def list_reviews(
+    db: AsyncSession = Depends(get_db),
+    _user: str = Depends(verify_jwt_token),
+):
     redis = await get_redis()
 
-    # Try Redis first
     cached = await redis.get(CACHE_KEY_LIST)
     if cached:
-        return orjson.loads(cached)
+        return {"success": True, "data": {"reviews": orjson.loads(cached)}}
 
-    # Cache miss → query DB
     stmt = """
     SELECT id, pr_number, repo, summary, created_at
     FROM pr_reviews
@@ -29,28 +31,26 @@ async def list_reviews(db: AsyncSession = Depends(get_db)):
     """
 
     result = await db.execute(stmt)
-    rows = result.mappings().all()
+    rows = [dict(row) for row in result.mappings().all()]
 
-    payload = [dict(row) for row in rows]
-    serialized = orjson.dumps(payload)
+    await redis.set(CACHE_KEY_LIST, orjson.dumps(rows), ex=CACHE_TTL)
 
-    # Store in Redis
-    await redis.set(CACHE_KEY_LIST, serialized, ex=CACHE_TTL)
-
-    return payload
+    return {"success": True, "data": {"reviews": rows}}
 
 
 @router.get("/reviews/{review_id}")
-async def get_single_review(review_id: int, db: AsyncSession = Depends(get_db)):
+async def get_single_review(
+    review_id: str,
+    db: AsyncSession = Depends(get_db),
+    _user: str = Depends(verify_jwt_token),
+):
     redis = await get_redis()
     cache_key = f"pg:review:{review_id}"
 
-    # Try Redis first
     cached = await redis.get(cache_key)
     if cached:
         return orjson.loads(cached)
 
-    # Cache miss → query DB
     stmt_review = """
     SELECT *
     FROM pr_reviews
@@ -78,9 +78,6 @@ async def get_single_review(review_id: int, db: AsyncSession = Depends(get_db)):
         "findings": [dict(f) for f in findings_rows],
     }
 
-    serialized = orjson.dumps(payload)
-
-    # Store in Redis
-    await redis.set(cache_key, serialized, ex=CACHE_TTL)
+    await redis.set(cache_key, orjson.dumps(payload), ex=CACHE_TTL)
 
     return payload
