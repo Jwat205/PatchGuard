@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     redis_ttl_seconds: int = 3600
 
     # API
-    host: str = "0.0.0.0"
+    host: str = "0.0.0.0"  # nosec B104
     port: int = 8000
 
     # JWT
