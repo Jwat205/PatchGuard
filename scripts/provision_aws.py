@@ -447,23 +447,37 @@ def provision_ec2(ec2, subnet_a: str, app_sg: str, instance_profile: str, key_na
         print(f"  EC2 instance already exists: {instance_id}")
         return {"instance_id": instance_id}
 
-    instance = ec2.run_instances(
-        ImageId=ami_id,
-        InstanceType="t3.micro",  # Free Tier: 750 hrs/month for 12 months
-        MinCount=1,
-        MaxCount=1,
-        KeyName=key_name,
-        SecurityGroupIds=[app_sg],
-        SubnetId=subnet_a,
-        IamInstanceProfile={"Name": instance_profile},
-        UserData=DOCKER_USER_DATA,
-        TagSpecifications=[
-            {"ResourceType": "instance", "Tags": [{"Key": "Name", "Value": f"{PROJECT}-app"}]}
-        ],
-        BlockDeviceMappings=[
-            {"DeviceName": "/dev/xvda", "Ebs": {"VolumeSize": 20, "VolumeType": "gp2"}}  # Free Tier cap: 30GB/mo across all EBS
-        ],
-    )
+    # IAM says the instance profile exists as soon as create_instance_profile returns, but EC2
+    # (a separate service) can take up to ~30-60s to see it - RunInstances rejects it as invalid
+    # in that window. Retry through the propagation delay instead of failing the whole script.
+    import time
+
+    for attempt in range(6):
+        try:
+            instance = ec2.run_instances(
+                ImageId=ami_id,
+                InstanceType="t3.micro",  # Free Tier: 750 hrs/month for 12 months
+                MinCount=1,
+                MaxCount=1,
+                KeyName=key_name,
+                SecurityGroupIds=[app_sg],
+                SubnetId=subnet_a,
+                IamInstanceProfile={"Name": instance_profile},
+                UserData=DOCKER_USER_DATA,
+                TagSpecifications=[
+                    {"ResourceType": "instance", "Tags": [{"Key": "Name", "Value": f"{PROJECT}-app"}]}
+                ],
+                BlockDeviceMappings=[
+                    {"DeviceName": "/dev/xvda", "Ebs": {"VolumeSize": 20, "VolumeType": "gp2"}}  # Free Tier cap: 30GB/mo across all EBS
+                ],
+            )
+            break
+        except ClientError as e:
+            if e.response["Error"]["Code"] != "InvalidParameterValue" or "Instance Profile" not in str(e) or attempt == 5:
+                raise
+            print(f"  Instance profile not yet visible to EC2, retrying in 10s (attempt {attempt + 1}/6)...")
+            time.sleep(10)
+
     instance_id = instance["Instances"][0]["InstanceId"]
     print(f"  Launching EC2 instance: {instance_id}")
     return {"instance_id": instance_id}
