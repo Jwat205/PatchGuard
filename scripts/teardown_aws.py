@@ -32,7 +32,7 @@ def ignore_not_found(fn, *args, **kwargs) -> None:
         fn(*args, **kwargs)
     except ClientError as e:
         code = e.response["Error"]["Code"]
-        if "NotFound" not in code and code not in ("InvalidGroup.NotFound", "InvalidVpcID.NotFound"):
+        if "NotFound" not in code and code not in ("InvalidGroup.NotFound", "InvalidVpcID.NotFound", "NoSuchEntity"):
             raise
 
 
@@ -120,7 +120,9 @@ def teardown_network(ec2) -> None:
         return
     vpc_id = vpcs[0]["VpcId"]
 
-    for sg_name in (f"{PROJECT}-app-sg", f"{PROJECT}-db-sg", f"{PROJECT}-cache-sg"):
+    # db-sg and cache-sg's ingress rules reference app-sg's GroupId as their allowed source, so
+    # AWS refuses to delete app-sg while either still exists - delete the referencing groups first.
+    for sg_name in (f"{PROJECT}-db-sg", f"{PROJECT}-cache-sg", f"{PROJECT}-app-sg"):
         sgs = ec2.describe_security_groups(
             Filters=[{"Name": "group-name", "Values": [sg_name]}, {"Name": "vpc-id", "Values": [vpc_id]}]
         )["SecurityGroups"]
