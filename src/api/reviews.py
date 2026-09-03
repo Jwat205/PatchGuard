@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth import verify_jwt_token
+from src.db import redis_client
 from src.db.database import get_db
-from src.db.redis_client import get_redis
 
 router = APIRouter()
 
@@ -17,7 +17,7 @@ async def list_reviews(
     db: AsyncSession = Depends(get_db),
     _user: str = Depends(verify_jwt_token),
 ):
-    redis = await get_redis()
+    redis = await redis_client.get_redis()
 
     cached = await redis.get(CACHE_KEY_LIST)
     if cached:
@@ -44,7 +44,7 @@ async def get_single_review(
     db: AsyncSession = Depends(get_db),
     _user: str = Depends(verify_jwt_token),
 ):
-    redis = await get_redis()
+    redis = await redis_client.get_redis()
     cache_key = f"pg:review:{review_id}"
 
     cached = await redis.get(cache_key)
